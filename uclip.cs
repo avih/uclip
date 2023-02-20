@@ -57,15 +57,23 @@ class Program {
                           "       uclip -O          Write clipboard text to standard output as UTF-16LE\n"+
                           "       uclip -oe | -Oe   Like -o/-O but error if text is empty or unavailable\n"+
                           "       uclip -h          Print this help and exit\n"+
-                          "Version 0.1, https://github.com/avih/uclip\n");
+                          "Version 0.2, https://github.com/avih/uclip\n");
 
         } else if (o == "-c" && alen == 2) {
-            Clipboard.SetText(args[1]);
+            if (args[1] == "")
+                Clipboard.Clear();
+            else
+                Clipboard.SetText(args[1]);
 
         } else if ((o == "-i" || o == "-I") && alen == 1) {
             byte[] bytes = read_stream(Console.OpenStandardInput());
             Encoding e = o == "-i" ? Encoding.UTF8 : Encoding.Unicode;
-            Clipboard.SetText(new string(e.GetChars(bytes, 0, bytes.Length)));
+            string s = new string(e.GetChars(bytes));
+
+            if (s == "")
+                Clipboard.Clear();
+            else
+                Clipboard.SetText(s);
 
         } else if ((o == "-o" || o == "-O" || o == "-oe" || o == "-Oe") && alen == 1) {
             bool do_err = o.Length > 2, do_utf8 = o[1] == 'o';
@@ -98,7 +106,10 @@ class Program {
     [STAThreadAttribute]
     static int Main(string[] args) {
         if (args.Length == 2 && args[0] == "-c") {
-            Clipboard.SetText(args[1]);
+            if (args[1] == "")
+                Clipboard.Clear();
+            else
+                Clipboard.SetText(args[1]);
             return 0;
         }
         if (args.Length == 1 && args[0] == "-o") {
