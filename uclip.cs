@@ -2,10 +2,12 @@
 //  Copyright 2022 Avi Halachmi, https://github.com/avih/uclip
 //  License: MIT (see full ilcense at the file LICENSE)
 //
-//  Compile on Windows with dotnet 4 (XP-SP3 or later):
-//      c:/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe uclip.cs
-//  Compile with mono (dotnet 4):
-//      mcs -r:System.Windows.Forms uclip.cs
+//  Compile on Windows (XP-SP3 or later):
+//    .net4:   c:/Windows/Microsoft.NET/Framework/v4.0.30319/csc.exe uclip.cs
+//    .net3.5: c:/Windows/Microsoft.NET/Framework/v3.5/csc.exe       uclip.cs
+//    .net2:   c:/Windows/Microsoft.NET/Framework/v2.0.50727/csc.exe uclip.cs
+//  Compile with mono:
+//    mcs -r:System.Windows.Forms uclip.cs
 
 using System;
 using System.IO;
@@ -45,19 +47,31 @@ class Program {
 
     [STAThreadAttribute]
     static void Main(string[] args) {
+        if (args.Length == 0) {
+            // without arguments, we'd like to do -i only if we have some input
+            // (stdin is redirected), otherwise display usage info. however,
+            // testing whether it's redirected depends on both the compiler and
+            // runtime. so we test API availability at runtime via reflection,
+            // and do -i if no API, or we have API and it is redirected.
+            System.Reflection.PropertyInfo
+                pi = typeof(Console).GetProperty("IsInputRedirected");
+            if (pi == null || pi.GetValue(typeof(Console), null).Equals(true))
+                args = new string[] {"-i"};  // can't check, or redirected
+        }
+
         int alen = args.Length;
         string o = alen >= 1 ? args[0] : "";
 
         if ((o == "-h" || o == "--help" || o == "/?") && alen == 1) {
             // exactly as documented, not POSIX syntax (no -cSTR, no -o -e, etc)
-            Console.Write("Usage: uclip -c STRING   Copy (Unicode) STRING to the clipboard\n"+
-                          "       uclip -i          Copy standard input as UTF-8 to the clipboard\n"+
+            Console.Write("Usage: uclip [-i]        Copy standard input as UTF-8 to the clipboard\n"+
                           "       uclip -I          Copy standard input as UTF-16LE to the clipboard\n"+
+                          "       uclip -c TEXT     Copy (Unicode) TEXT to the clipboard\n"+
                           "       uclip -o          Write clipboard text to standard output as UTF-8\n"+
                           "       uclip -O          Write clipboard text to standard output as UTF-16LE\n"+
                           "       uclip -oe | -Oe   Like -o/-O but error if text is empty or unavailable\n"+
                           "       uclip -h          Print this help and exit\n"+
-                          "Version 0.2, https://github.com/avih/uclip\n");
+                          "Version 0.2+, https://github.com/avih/uclip\n");
 
         } else if (o == "-c" && alen == 2) {
             if (args[1] == "")
@@ -88,7 +102,7 @@ class Program {
             Console.OpenStandardOutput().Write(bytes, 0, bytes.Length);
 
         } else {
-            err_exit(1, "Usage: uclip -h | -c STR | -i | -I | -o[e] | -O[e]\n");
+            err_exit(1, "Usage: uclip -h | [-i] | -I | -c TEXT | -o[e] | -O[e]\n");
         }
     } // Main
 }
