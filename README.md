@@ -5,14 +5,14 @@ Clipboard command line tool for Windows, with Unicode support.
 - Compiles/runs on mono too.
 
 ```
-Usage: uclip -c STRING   Copy (Unicode) STRING to the clipboard
-       uclip -i          Copy standard input as UTF-8 to the clipboard
+Usage: uclip [-i]        Copy standard input as UTF-8 to the clipboard
        uclip -I          Copy standard input as UTF-16LE to the clipboard
+       uclip -c [TEXT]   Copy TEXT to the clipboard (clear if no TEXT)
        uclip -o          Write clipboard text to standard output as UTF-8
        uclip -O          Write clipboard text to standard output as UTF-16LE
        uclip -oe | -Oe   Like -o/-O but error if text is empty or unavailable
        uclip -h          Print this help and exit
-version 0.1, https://github.com/avih/uclip
+Version 0.3, https://github.com/avih/uclip
 ```
 
 
