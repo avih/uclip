@@ -21,19 +21,13 @@ class Program {
         Environment.Exit(e);
     }
 
-    static byte[] bytes_clone(byte[] src, int size) {  // realloc-like
-        byte[] dst = new byte[size];
-        Array.Copy(src, 0, dst, 0, Math.Min(src.Length, size));
-        return dst;
-    }
-
     static byte[] read_stream(Stream s) {
         int n, len = 0, LIMIT = 1024 * 1024 * 1024;  // arbitrary 1G limit
         byte[] bytes = new byte[2048];
 
         do {
             if (len == bytes.Length)
-                bytes = bytes_clone(bytes, len < LIMIT/4 ? len*4 : LIMIT+1);
+                Array.Resize(ref bytes, len < LIMIT/4 ? len*4 : LIMIT+1);
             n = s.Read(bytes, len, bytes.Length - len);
             len = len + n;
         } while (n > 0);
@@ -41,7 +35,15 @@ class Program {
         if (len > LIMIT)  // can reach LIMIT+1
             err_exit(3, "uclip: input exceeds "+ LIMIT +" bytes, aborting\n");
 
-        return bytes_clone(bytes, len);
+        Array.Resize(ref bytes, len);
+        return bytes;
+    }
+
+    static void to_clipboard(string s) {
+        if (s == "")
+            Clipboard.Clear();
+        else
+            Clipboard.SetText(s);
     }
 
 
@@ -74,20 +76,12 @@ class Program {
                           "Version 0.2+, https://github.com/avih/uclip\n");
 
         } else if (o == "-c" && alen == 2) {
-            if (args[1] == "")
-                Clipboard.Clear();
-            else
-                Clipboard.SetText(args[1]);
+            to_clipboard(args[1]);
 
         } else if ((o == "-i" || o == "-I") && alen == 1) {
             byte[] bytes = read_stream(Console.OpenStandardInput());
             Encoding e = o == "-i" ? Encoding.UTF8 : Encoding.Unicode;
-            string s = new string(e.GetChars(bytes));
-
-            if (s == "")
-                Clipboard.Clear();
-            else
-                Clipboard.SetText(s);
+            to_clipboard(new string(e.GetChars(bytes)));
 
         } else if ((o == "-o" || o == "-O" || o == "-oe" || o == "-Oe") && alen == 1) {
             bool do_err = o.Length > 2, do_utf8 = o[1] == 'o';
