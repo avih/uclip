@@ -68,15 +68,15 @@ class Program {
             // exactly as documented, not POSIX syntax (no -cSTR, no -o -e, etc)
             Console.Write("Usage: uclip [-i]        Copy standard input as UTF-8 to the clipboard\n"+
                           "       uclip -I          Copy standard input as UTF-16LE to the clipboard\n"+
-                          "       uclip -c TEXT     Copy (Unicode) TEXT to the clipboard\n"+
+                          "       uclip -c [TEXT]   Copy TEXT to the clipboard (clear if no TEXT)\n"+
                           "       uclip -o          Write clipboard text to standard output as UTF-8\n"+
                           "       uclip -O          Write clipboard text to standard output as UTF-16LE\n"+
                           "       uclip -oe | -Oe   Like -o/-O but error if text is empty or unavailable\n"+
                           "       uclip -h          Print this help and exit\n"+
                           "Version 0.2+, https://github.com/avih/uclip\n");
 
-        } else if (o == "-c" && alen == 2) {
-            to_clipboard(args[1]);
+        } else if (o == "-c" && alen <= 2) {
+            to_clipboard(alen == 1 ? "" : args[1]);
 
         } else if ((o == "-i" || o == "-I") && alen == 1) {
             byte[] bytes = read_stream(Console.OpenStandardInput());
@@ -96,7 +96,7 @@ class Program {
             Console.OpenStandardOutput().Write(bytes, 0, bytes.Length);
 
         } else {
-            err_exit(1, "Usage: uclip -h | [-i] | -I | -c TEXT | -o[e] | -O[e]\n");
+            err_exit(1, "Usage: uclip -h | [-i] | -I | -c [TEXT] | -o[e] | -O[e]\n");
         }
     } // Main
 }
