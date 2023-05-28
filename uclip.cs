@@ -14,7 +14,35 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
+// when copying to clipboard, we first try using win32 api via user32.dll.
+// If that fails, we fallback to dotnet native Clipboard object.
+// The win32 API parts are inside #region win32, and are technically optional.
+//
+// The win32 copy seem to have one main advantage: retries are independent,
+// while the dotnet Clipboard copy seem to either succeed on 1st attempt, or
+// fail in all attempts (regardless if attempts are via SetDataObject params,
+// or repeated calls of 1 attempt). This is noticeable when another app
+// monitors the clipboard, like TightVNC or other remote desktop apps.
+// Also, win32 seems about twice faster for big strings (100M - 1s vs 2s).
+#region win32
+  using System.Threading;
+  using System.Runtime.InteropServices;
+#endregion
+
 class Program {
+
+  #region win32
+    [DllImport("user32.dll")]
+    internal static extern bool OpenClipboard(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    internal static extern bool CloseClipboard();
+
+    [DllImport("user32.dll")]
+    internal static extern bool SetClipboardData(uint uFormat, IntPtr data);
+
+    const uint CF_UNICODETEXT = 13;
+  #endregion
 
     static void err_exit(int e, string s) {
         Console.Error.Write(s);
@@ -41,6 +69,24 @@ class Program {
 
     static void to_clipboard(string s) {
         const int retries = 10, cooldown_ms = 100;
+
+      #region win32
+        IntPtr hs = Marshal.StringToHGlobalUni(s);
+        try {  // using user32.dll
+            for (int i = 0; i < retries; ++i) {
+                if (i > 0)
+                    Thread.Sleep(cooldown_ms);
+
+                bool opened = OpenClipboard(IntPtr.Zero);
+                bool copied = opened && SetClipboardData(CF_UNICODETEXT, hs);
+                if (opened)
+                    CloseClipboard();
+                if (copied)
+                    return;  // SetClipboardData took ownership of hs
+            }
+        } catch (Exception) {}
+        Marshal.FreeHGlobal(hs);
+      #endregion
 
         try {
             Clipboard.SetDataObject(s, true, retries, cooldown_ms);
