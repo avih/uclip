@@ -7,12 +7,11 @@ Clipboard command line tool for Windows, with Unicode support.
 ```
 Usage: uclip [-i]        Copy standard input as UTF-8 to the clipboard
        uclip -I          Copy standard input as UTF-16LE to the clipboard
-       uclip -c [TEXT]   Copy TEXT to the clipboard (clear if no TEXT)
+       uclip -c [TEXT]   Copy TEXT to the clipboard (empty if no TEXT)
        uclip -o          Write clipboard text to standard output as UTF-8
        uclip -O          Write clipboard text to standard output as UTF-16LE
-       uclip -oe | -Oe   Like -o/-O but error if text is empty or unavailable
        uclip -h          Print this help and exit
-Version 0.3, https://github.com/avih/uclip
+Version 0.4, https://github.com/avih/uclip
 ```
 
 
