@@ -15,7 +15,7 @@ using System.Text;
 using System.Windows.Forms;
 
 class Program {
- 
+
     static void err_exit(int e, string s) {
         Console.Error.Write(s);
         Environment.Exit(e);
@@ -40,10 +40,14 @@ class Program {
     }
 
     static void to_clipboard(string s) {
-        if (s == "")
-            Clipboard.Clear();
-        else
-            Clipboard.SetText(s);
+        const int retries = 10, cooldown_ms = 100;
+
+        try {
+            Clipboard.SetDataObject(s, true, retries, cooldown_ms);
+            return;
+        } catch (Exception) {}
+
+        err_exit(2, "uclip: copy failed\n");
     }
 
 
@@ -68,10 +72,9 @@ class Program {
             // exactly as documented, not POSIX syntax (no -cSTR, no -o -e, etc)
             Console.Write("Usage: uclip [-i]        Copy standard input as UTF-8 to the clipboard\n"+
                           "       uclip -I          Copy standard input as UTF-16LE to the clipboard\n"+
-                          "       uclip -c [TEXT]   Copy TEXT to the clipboard (clear if no TEXT)\n"+
+                          "       uclip -c [TEXT]   Copy TEXT to the clipboard (empty if no TEXT)\n"+
                           "       uclip -o          Write clipboard text to standard output as UTF-8\n"+
                           "       uclip -O          Write clipboard text to standard output as UTF-16LE\n"+
-                          "       uclip -oe | -Oe   Like -o/-O but error if text is empty or unavailable\n"+
                           "       uclip -h          Print this help and exit\n"+
                           "Version 0.3, https://github.com/avih/uclip\n");
 
@@ -83,20 +86,21 @@ class Program {
             Encoding e = o == "-i" ? Encoding.UTF8 : Encoding.Unicode;
             to_clipboard(new string(e.GetChars(bytes)));
 
-        } else if ((o == "-o" || o == "-O" || o == "-oe" || o == "-Oe") && alen == 1) {
-            bool do_err = o.Length > 2, do_utf8 = o[1] == 'o';
-
-            string s = Clipboard.GetText();
-            if (do_err && s == string.Empty)
-                err_exit(2, "uclip: clipboard text is empty or unavailable\n");
+        } else if ((o == "-o" || o == "-O") && alen == 1) {
+            IDataObject iData = Clipboard.GetDataObject();  // 10 attempts
+            if (iData == null)
+                err_exit(2, "uclip: cannot access clipboard data\n");
+            if (!iData.GetDataPresent(DataFormats.UnicodeText))
+                err_exit(2, "uclip: clipboard does not contain text\n");
 
             // if stdout is windows console: unicode may look wrong - that's OK
-            Encoding e = do_utf8 ? Encoding.UTF8 : Encoding.Unicode;
+            Encoding e = o == "-o" ? Encoding.UTF8 : Encoding.Unicode;
+            String s = (String)iData.GetData(DataFormats.UnicodeText);
             byte[] bytes = e.GetBytes(s);
             Console.OpenStandardOutput().Write(bytes, 0, bytes.Length);
 
         } else {
-            err_exit(1, "Usage: uclip -h | [-i] | -I | -c [TEXT] | -o[e] | -O[e]\n");
+            err_exit(1, "Usage: uclip -h | [-i] | -I | -c [TEXT] | -o | -O\n");
         }
     } // Main
 }
