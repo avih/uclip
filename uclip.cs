@@ -42,6 +42,16 @@ class Program {
     internal static extern bool SetClipboardData(uint uFormat, IntPtr data);
 
     const uint CF_UNICODETEXT = 13;
+
+    [DllImport("kernel32.dll")]
+    internal static extern IntPtr GetStdHandle(int nStdHandle);
+
+    const int STD_OUTPUT_HANDLE = -11;
+
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode)]
+    internal static extern bool
+        WriteConsoleW(IntPtr hCon, string s, UInt32 nWriteW,
+                      out UInt32 nWrittenW, IntPtr lpReserved);
   #endregion
 
     static void err_exit(int e, string s) {
@@ -99,6 +109,16 @@ class Program {
         err_exit(2, "uclip: copy failed\n");
     }
 
+    static bool writeWindowsConsole(string s) {
+        try {
+          #region win32
+            UInt32 dummy;  // some windows versions require non-NULL arg
+            return WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), s,
+                                 (UInt32)s.Length, out dummy, IntPtr.Zero);
+          #endregion
+        } catch (Exception) {}
+        return false;
+    }
 
     [STAThreadAttribute]
     static void Main(string[] args) {
@@ -123,6 +143,7 @@ class Program {
                           "       uclip -I          Copy standard input as UTF-16LE to the clipboard\n"+
                           "       uclip -c [TEXT]   Copy TEXT to the clipboard (empty if no TEXT)\n"+
                           "       uclip -o          Write clipboard text to standard output as UTF-8\n"+
+                          "       uclip -oo         Like -o, but no special handling of console output\n"+
                           "       uclip -O          Write clipboard text to standard output as UTF-16LE\n"+
                           "       uclip -h          Print this help and exit\n"+
                           "Version 0.4, https://github.com/avih/uclip\n");
@@ -135,18 +156,20 @@ class Program {
             Encoding e = o == "-i" ? Encoding.UTF8 : Encoding.Unicode;
             to_clipboard(new string(e.GetChars(bytes)));
 
-        } else if ((o == "-o" || o == "-O") && alen == 1) {
+        } else if ((o == "-o" || o == "-oo" || o == "-O") && alen == 1) {
             IDataObject iData = Clipboard.GetDataObject();  // 10 attempts
             if (iData == null)
                 err_exit(2, "uclip: cannot access clipboard data\n");
             if (!iData.GetDataPresent(DataFormats.UnicodeText))
                 err_exit(2, "uclip: clipboard does not contain text\n");
 
-            // if stdout is windows console: unicode may look wrong - that's OK
-            Encoding e = o == "-o" ? Encoding.UTF8 : Encoding.Unicode;
+            // -o first tries to write unicode directly to the console
             String s = (String)iData.GetData(DataFormats.UnicodeText);
-            byte[] bytes = e.GetBytes(s);
-            Console.OpenStandardOutput().Write(bytes, 0, bytes.Length);
+            if (o != "-o" || !writeWindowsConsole(s)) {
+                Encoding e = o == "-o" || o == "-oo" ? Encoding.UTF8 : Encoding.Unicode;
+                byte[] bytes = e.GetBytes(s);
+                Console.OpenStandardOutput().Write(bytes, 0, bytes.Length);
+            }
 
         } else {
             err_exit(1, "Usage: uclip -h | [-i] | -I | -c [TEXT] | -o | -O\n");
