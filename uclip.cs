@@ -70,6 +70,9 @@ class Program {
     static void to_clipboard(string s) {
         const int retries = 10, cooldown_ms = 100;
 
+        // seems that it's more likely to copy successfully after clear...
+        try { Clipboard.Clear(); } catch (Exception) {}
+
       #region win32
         IntPtr hs = Marshal.StringToHGlobalUni(s);
         try {  // using user32.dll
