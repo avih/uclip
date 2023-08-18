@@ -9,9 +9,10 @@ Usage: uclip [-i]        Copy standard input as UTF-8 to the clipboard
        uclip -I          Copy standard input as UTF-16LE to the clipboard
        uclip -c [TEXT]   Copy TEXT to the clipboard (empty if no TEXT)
        uclip -o          Write clipboard text to standard output as UTF-8
+       uclip -oo         Like -o, but no special handling of console output
        uclip -O          Write clipboard text to standard output as UTF-16LE
        uclip -h          Print this help and exit
-Version 0.4, https://github.com/avih/uclip
+Version 0.5, https://github.com/avih/uclip
 ```
 
 

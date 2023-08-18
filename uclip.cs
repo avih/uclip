@@ -146,7 +146,7 @@ class Program {
                           "       uclip -oo         Like -o, but no special handling of console output\n"+
                           "       uclip -O          Write clipboard text to standard output as UTF-16LE\n"+
                           "       uclip -h          Print this help and exit\n"+
-                          "Version 0.4, https://github.com/avih/uclip\n");
+                          "Version 0.5, https://github.com/avih/uclip\n");
 
         } else if (o == "-c" && alen <= 2) {
             to_clipboard(alen == 1 ? "" : args[1]);
