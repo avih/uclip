@@ -36,6 +36,9 @@ class Program {
     internal static extern bool OpenClipboard(IntPtr hWnd);
 
     [DllImport("user32.dll")]
+    internal static extern bool EmptyClipboard();
+
+    [DllImport("user32.dll")]
     internal static extern bool CloseClipboard();
 
     [DllImport("user32.dll")]
@@ -80,8 +83,8 @@ class Program {
     static void to_clipboard(string s) {
         const int retries = 10, cooldown_ms = 100;
 
-        // seems that it's more likely to copy successfully after clear...
-        try { Clipboard.Clear(); } catch (Exception) {}
+        // some applications seem to identify the copy better
+        // if the clipboard is cleared first
 
       #region win32
         IntPtr hs = Marshal.StringToHGlobalUni(s);
@@ -90,8 +93,15 @@ class Program {
                 if (i > 0)
                     Thread.Sleep(cooldown_ms);
 
+                // EmptyClipboard() after OpenClipboard(0) loses ownership,
+                // and SetClipboardData or CloseClipboard would then fail,
+                // so it needs another OpenClipboard
                 bool opened = OpenClipboard(IntPtr.Zero);
+                if (opened && EmptyClipboard())
+                    opened = OpenClipboard(IntPtr.Zero);
+
                 bool copied = opened && SetClipboardData(CF_UNICODETEXT, hs);
+
                 if (opened)
                     CloseClipboard();
                 if (copied)
@@ -100,6 +110,8 @@ class Program {
         } catch (Exception) {}
         Marshal.FreeHGlobal(hs);
       #endregion
+
+        try { Clipboard.Clear(); } catch (Exception) {}
 
         try {
             Clipboard.SetDataObject(s, true, retries, cooldown_ms);
@@ -146,7 +158,7 @@ class Program {
                           "       uclip -oo         Like -o, but no special handling of console output\n"+
                           "       uclip -O          Write clipboard text to standard output as UTF-16LE\n"+
                           "       uclip -h          Print this help and exit\n"+
-                          "Version 0.5, https://github.com/avih/uclip\n");
+                          "Version 0.6, https://github.com/avih/uclip\n");
 
         } else if (o == "-c" && alen <= 2) {
             to_clipboard(alen == 1 ? "" : args[1]);

@@ -12,7 +12,7 @@ Usage: uclip [-i]        Copy standard input as UTF-8 to the clipboard
        uclip -oo         Like -o, but no special handling of console output
        uclip -O          Write clipboard text to standard output as UTF-16LE
        uclip -h          Print this help and exit
-Version 0.5, https://github.com/avih/uclip
+Version 0.6, https://github.com/avih/uclip
 ```
 
 
